@@ -25,11 +25,15 @@ async function source() {
   const { getAccessToken, readAllTabs, listPropertyFolders, listImages, download } = await import('./google.mjs');
   const need = ['GOOGLE_SERVICE_ACCOUNT_JSON', 'SHEET_ID', 'DRIVE_FOLDER_ID'].filter(k => !process.env[k]);
   if (need.length) throw new Error(`설정값이 없습니다: ${need.join(', ')} (GitHub > Settings > Secrets 에 등록 필요)`);
+  // 주소 전체를 붙여넣어도 ID만 뽑아 쓴다 (…/d/ID/edit, …/folders/ID?usp=sharing)
+  const pick = (v, re) => { v = v.trim(); const m = re.exec(v); return (m ? m[1] : v).replace(/[?#].*$/, '').replace(/\/+$/, ''); };
+  const sheetId = pick(process.env.SHEET_ID, /\/spreadsheets\/d\/([\w-]+)/);
+  const folderId = pick(process.env.DRIVE_FOLDER_ID, /\/folders\/([\w-]+)/);
   const { token, email } = await getAccessToken(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
   say(`구글 서비스 계정 로그인: ${email}`);
   return {
-    tabs: () => readAllTabs(token, process.env.SHEET_ID),
-    folders: () => listPropertyFolders(token, process.env.DRIVE_FOLDER_ID),
+    tabs: () => readAllTabs(token, sheetId),
+    folders: () => listPropertyFolders(token, folderId).catch(e => { throw new Error(`매물사진 폴더를 열 수 없습니다 (폴더 ID 끝자리 ${folderId.slice(-4)}). 폴더 ID가 맞는지, 폴더가 ${email} 에 뷰어로 공유됐는지 확인 — ${e.message}`); }),
     images: id => listImages(token, id),
     download: id => download(token, id),
   };
