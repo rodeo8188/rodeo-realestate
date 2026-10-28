@@ -77,11 +77,24 @@ async function listChildren(token, folderId) {
 
 const FOLDER = 'application/vnd.google-apps.folder';
 
-// 루트 폴더 아래에서 매물번호로 시작하는 폴더를 찾아 사진 목록을 반환한다.
-// 매물 폴더 안의 하위 폴더(예: "사진")도 한 단계까지 확인한다.
+// 루트 폴더 아래에서 매물번호 폴더(B-0001 등)를 찾는다.
+// "매물관리 → 건물매매 → B-0001" 처럼 분류 폴더가 중간에 있어도 3단계 깊이까지 찾는다.
+const ID_FOLDER = /^[A-Z]+-\d+/i;
 export async function listPropertyFolders(token, rootId) {
-  const children = await listChildren(token, rootId);
-  return children.filter(f => f.mimeType === FOLDER);
+  const found = [];
+  let level = [rootId];
+  for (let depth = 0; depth < 3 && level.length; depth++) {
+    const next = [];
+    for (const id of level) {
+      for (const f of (await listChildren(token, id)).filter(f => f.mimeType === FOLDER)) {
+        if (ID_FOLDER.test(f.name.normalize('NFKC').trim())) found.push(f);
+        else if (!/사진|photo|image/i.test(f.name)) next.push(f.id);
+      }
+    }
+    if (next.length > 300) throw new Error('매물사진 폴더 안의 분류 폴더가 너무 많습니다. DRIVE_FOLDER_ID가 올바른 폴더인지 확인해 주세요.');
+    level = next;
+  }
+  return found;
 }
 
 export async function listImages(token, folderId) {
