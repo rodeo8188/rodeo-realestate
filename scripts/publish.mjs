@@ -18,7 +18,7 @@ const siteUrl = (process.env.SITE_URL || '').replace(/\/$/, '');
 
 const log = [], warn = [];
 const say = m => { console.log(m); log.push(m); };
-const caution = m => { console.warn('⚠ ' + m); warn.push(m); };
+const caution = m => { console.warn('⚠ ' + m); warn.push(m); if (process.env.GITHUB_ACTIONS) console.log(`::warning::${m}`); };
 
 async function source() {
   if (SAMPLE) return (await import('./sample-data.mjs')).sampleSource();
@@ -135,7 +135,13 @@ async function main() {
   }
 }
 
-main().catch(e => {
-  console.error('❌ 실패: ' + e.message);
+main().catch(async e => {
+  const msg = String(e?.message || e).replace(/[\r\n]+/g, ' ');
+  console.error('❌ 실패: ' + msg);
+  // GitHub 실행 화면(요약/주석)에 원인이 바로 보이도록 남긴다
+  if (process.env.GITHUB_ACTIONS) console.log(`::error title=홈페이지 생성 실패::${msg}`);
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    await fs.appendFile(process.env.GITHUB_STEP_SUMMARY, `## ❌ 홈페이지 생성 실패\n\n${msg}\n\n${log.map(l => `- ${l}`).join('\n')}\n`).catch(() => {});
+  }
   process.exitCode = 1;
 });
