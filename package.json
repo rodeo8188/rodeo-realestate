@@ -1,0 +1,15 @@
+{
+  "name": "rodeo-realestate-site",
+  "private": true,
+  "type": "module",
+  "description": "로데오부동산 홈페이지 - 구글시트/드라이브 매물을 정적 홈페이지로 자동 생성",
+  "scripts": {
+    "build": "node scripts/publish.mjs",
+    "sample": "node scripts/publish.mjs --sample",
+    "serve": "node scripts/serve.mjs"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "sharp": "0.35.4"
+  }
+}

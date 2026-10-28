@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.cache/
+*.local.json
+.env
+service-account*.json
