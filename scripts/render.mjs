@@ -30,8 +30,14 @@ export function priceText(p) {
   if (p.deal === '월세') return { label: '월세', value: `${won(p.deposit)} / ${won(p.monthlyRent)}` };
   return { label: p.deal, value: won(p.salePrice ?? p.deposit) };
 }
-const region = p => [p.province, p.district, p.neighborhood].filter(Boolean).join(' ');
-const place = p => p.address || region(p);
+// 소재지: '시도 시군구 + 동' (공개 주소에 시군구가 없으면 앞에 붙임, 지번은 listings.mjs에서 이미 제거)
+const place = p => {
+  const region = [p.province, p.district].filter(Boolean).join(' ');
+  const local = p.address || p.neighborhood || '';
+  if (!local) return region;
+  if (p.district && local.includes(p.district)) return local;
+  return [region, local].filter(Boolean).join(' ');
+};
 
 function mainArea(p) {
   if (p.exclusiveArea != null) return `전용 ${m2(p.exclusiveArea)}`;

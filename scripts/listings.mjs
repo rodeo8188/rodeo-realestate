@@ -48,6 +48,14 @@ const FIELDS = {
 const clean = v => String(v ?? '').normalize('NFKC').trim();
 const normId = v => clean(v).toUpperCase();
 
+// 주소는 동까지만 공개한다. 지번·번지(예: 627-10, 413-6번지, 산12)는 지운다.
+// '둔산1동', '청사인근' 같은 동 이름·설명은 그대로 둔다.
+export function dongOnly(v) {
+  return clean(v).split(/\s+/)
+    .filter(t => t && !/^산?\d+(-\d+)?(번지|번)?$/.test(t) && !/^(산|번지|번)$/.test(t))
+    .join(' ');
+}
+
 function parse(type, raw) {
   const s = clean(raw);
   if (!s) return null;
@@ -124,6 +132,11 @@ export function buildListings(tabs) {
     if (deal === '전세' && rec.deposit == null) problems.push('보증금(전세가) 없음');
     if (deal === '월세' && (rec.deposit == null || rec.monthlyRent == null)) problems.push('보증금 또는 월세 없음');
     if (problems.length) { skipped.push({ id, reason: problems.join(', ') }); continue; }
+    for (const k of ['address', 'neighborhood']) {
+      if (rec[k] == null) continue;
+      const v = dongOnly(rec[k]);
+      if (v) rec[k] = v; else delete rec[k];
+    }
     delete rec.status; delete rec.__duplicate; delete rec.cover;
     rec.coverFile = base.cover ?? rec.cover;
     rec.group = categoryGroup(rec.category);
